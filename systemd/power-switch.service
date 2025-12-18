@@ -1,0 +1,7 @@
+[Unit]
+Description=Power switch AC/BATTERY (CPU/GPU)
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/power-switch.sh

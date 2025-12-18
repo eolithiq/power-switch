@@ -1,0 +1,1 @@
+SUBSYSTEM=="power_supply", ATTR{online}=="0", RUN+="/bin/systemctl start kbd-backlight-battery.service"

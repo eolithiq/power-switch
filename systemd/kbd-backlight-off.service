@@ -1,0 +1,6 @@
+[Unit]
+Description=Keyboard backlight OFF (save level)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/power-switch/kbd-backlight-off.sh
