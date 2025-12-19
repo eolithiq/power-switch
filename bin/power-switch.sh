@@ -28,7 +28,7 @@ CPU_VENDOR=$(grep -m1 vendor_id /proc/cpuinfo | awk '{print $3}')
 NVIDIA=$(lspci -Dn | awk '/NVIDIA/{print $1}' | head -n1)
 
 # Max brightness (for future use)
-BRIGHTNESS_MAX=$(cat /sys/class/backlight/amdgpu_bl1/max_brightness)
+BRIGHTNESS_MAX=$(cat /sys/class/backlight/*/max_brightness)
 
 # ---------- Functions ----------
 disable_boost() {
@@ -69,7 +69,7 @@ if [ "$AC_STATE" = "1" ]; then
     powerprofilesctl set performance
     set_cpu_freq_ac
     enable_boost
-
+    
     echo $BRIGHTNESS_MAX > /sys/class/backlight/*/brightness 2>/dev/null
 
     # NVIDIA ON    
@@ -82,7 +82,7 @@ else
     powerprofilesctl set power-saver
     disable_boost
     set_cpu_freq_battery
-
+    
     echo $((BRIGHTNESS_MAX * 60 / 100)) > /sys/class/backlight/*/brightness 2>/dev/null
 
     # NVIDIA OFF
