@@ -1,6 +1,0 @@
-[Unit]
-Description=Keyboard backlight OFF on battery
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/lib/power-switch/kbd-backlight-battery.sh

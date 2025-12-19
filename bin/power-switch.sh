@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #
-# Universal AC/BATTERY power switch for Linux laptops
-# CPU (AMD/Intel), NVIDIA, keyboard backlight
+# Universal AC / BATTERY power switch for Linux laptops
+# CPU (AMD/Intel), NVIDIA
 # Supports: Ubuntu 24.04+
 #
 
@@ -26,16 +26,6 @@ CPU_VENDOR=$(grep -m1 vendor_id /proc/cpuinfo | awk '{print $3}')
 
 # ---------- NVIDIA ----------
 NVIDIA=$(lspci -Dn | awk '/NVIDIA/{print $1}' | head -n1)
-
-# ---------- Keyboard backlight ----------
-KBD_BACKLIGHT=""
-for kbd in /sys/class/leds/*kbd_backlight*/brightness; do
-    [ -e "$kbd" ] && KBD_BACKLIGHT="$kbd" && break
-done
-
-set_kbd() {
-    [ -n "$KBD_BACKLIGHT" ] && echo "$1" > "$KBD_BACKLIGHT" 2>/dev/null
-}
 
 # ---------- Functions ----------
 disable_boost() {
@@ -79,12 +69,9 @@ if [ "$AC_STATE" = "1" ]; then
 
     # NVIDIA ON
     [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
-
-    # Keyboard backlight ON (max)
-    set_kbd 1
 else
     # ================= BATTERY MODE =================
-    log "BATTERY → power-saver + keyboard off"
+    log "BATTERY → power-saver"
 
     powerprofilesctl set power-saver
     disable_boost
@@ -92,9 +79,4 @@ else
 
     # NVIDIA OFF
     [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
-
-    # Keyboard backlight OFF (save brightness)
-    FILE=/run/kbd-backlight.level
-    [ -n "$KBD_BACKLIGHT" ] && cat "$KBD_BACKLIGHT" > "$FILE" 2>/dev/null || true
-    set_kbd 0
 fi

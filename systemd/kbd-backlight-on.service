@@ -1,6 +1,0 @@
-[Unit]
-Description=Keyboard backlight ON (AC only)
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/lib/power-switch/kbd-backlight-on.sh
