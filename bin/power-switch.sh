@@ -51,7 +51,7 @@ set_cpu_freq_battery() {
     # Calculate 60% of max frequency
     CPU_MAX=$(awk -F: '/cpu MHz/ {print int($2)}' /proc/cpuinfo | sort -nr | head -1)
     CPU_MAX_KHZ=$((CPU_MAX * 1000))
-    LIMIT=$((CPU_MAX_KHZ * 60 / 100))
+    LIMIT=$((CPU_MAX_KHZ * 80 / 100))
     cpupower frequency-set -g powersave
     cpupower frequency-set -u "$LIMIT"
 }
@@ -72,8 +72,8 @@ if [ "$AC_STATE" = "1" ]; then
     
     echo $BRIGHTNESS_MAX > /sys/class/backlight/*/brightness 2>/dev/null
 
-    # NVIDIA ON    
-    [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
+    # NVIDIA ON
+    [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null    
 else
     # ================= BATTERY MODE =================
     log "BATTERY - power-saver"
@@ -82,7 +82,7 @@ else
     disable_boost
     set_cpu_freq_battery
     
-    echo $((BRIGHTNESS_MAX * 60 / 100)) > /sys/class/backlight/*/brightness 2>/dev/null
+    echo $((BRIGHTNESS_MAX * 80 / 100)) > /sys/class/backlight/*/brightness 2>/dev/null
 
     # NVIDIA OFF
     [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null    
