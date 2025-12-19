@@ -67,7 +67,7 @@ if [ "$AC_STATE" = "1" ]; then
     set_cpu_freq_ac
     enable_boost
 
-    # NVIDIA ON
+    # NVIDIA ON    
     [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
     prime-select nvidia >/dev/null 2>&1
 else
@@ -79,6 +79,6 @@ else
     set_cpu_freq_battery
 
     # NVIDIA OFF
-    [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
     prime-select on-demand >/dev/null 2>&1
+    [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null    
 fi
