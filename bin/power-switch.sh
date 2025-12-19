@@ -74,7 +74,6 @@ if [ "$AC_STATE" = "1" ]; then
 
     # NVIDIA ON    
     [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
-    prime-select nvidia >/dev/null 2>&1
 else
     # ================= BATTERY MODE =================
     log "BATTERY - power-saver"
