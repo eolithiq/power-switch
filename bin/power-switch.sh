@@ -73,7 +73,8 @@ if [ "$AC_STATE" = "1" ]; then
     echo $BRIGHTNESS_MAX > /sys/class/backlight/*/brightness 2>/dev/null
 
     # NVIDIA ON
-    [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null    
+    [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
+    prime-select nvidia 2>/dev/null || true  
 else
     # ================= BATTERY MODE =================
     log "BATTERY - power-saver"
@@ -85,5 +86,6 @@ else
     echo $((BRIGHTNESS_MAX * 80 / 100)) > /sys/class/backlight/*/brightness 2>/dev/null
 
     # NVIDIA OFF
-    [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null    
+    [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null 
+    prime-select on-demand 2>/dev/null || true     
 fi
