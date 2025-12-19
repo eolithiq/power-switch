@@ -27,6 +27,9 @@ CPU_VENDOR=$(grep -m1 vendor_id /proc/cpuinfo | awk '{print $3}')
 # ---------- NVIDIA ----------
 NVIDIA=$(lspci -Dn | awk '/NVIDIA/{print $1}' | head -n1)
 
+# Max brightness (for future use)
+BRIGHTNESS_MAX=$(cat /sys/class/backlight/amdgpu_bl1/max_brightness)
+
 # ---------- Functions ----------
 disable_boost() {
     if [ "$CPU_VENDOR" = "AuthenticAMD" ] && [ -e /sys/devices/system/cpu/cpufreq/boost ]; then
@@ -67,6 +70,8 @@ if [ "$AC_STATE" = "1" ]; then
     set_cpu_freq_ac
     enable_boost
 
+    echo $BRIGHTNESS_MAX > /sys/class/backlight/*/brightness 2>/dev/null
+
     # NVIDIA ON    
     [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
     prime-select nvidia >/dev/null 2>&1
@@ -78,7 +83,8 @@ else
     disable_boost
     set_cpu_freq_battery
 
+    echo $((BRIGHTNESS_MAX * 60 / 100)) > /sys/class/backlight/*/brightness 2>/dev/null
+
     # NVIDIA OFF
-    prime-select on-demand >/dev/null 2>&1
     [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null    
 fi
