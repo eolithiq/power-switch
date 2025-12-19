@@ -10,7 +10,7 @@ Universal AC/BATTERY power management for Linux laptops.
 - Keyboard backlight:
   - Battery: always OFF
   - AC: ON only while typing
-  - Auto OFF after inactivity (30s)
+  - Auto OFF after inactivity (120s)
   - Restores last brightness
 - AC/BAT aware CPU/GPU scaling
 - No GUI, no cron, no deb
