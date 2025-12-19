@@ -61,7 +61,7 @@ set_cpu_freq_ac() {
 # ---------- Main ----------
 if [ "$AC_STATE" = "1" ]; then
     # ================= AC MODE =================
-    log "AC → performance"
+    log "AC - performance"
 
     powerprofilesctl set performance
     set_cpu_freq_ac
@@ -69,9 +69,10 @@ if [ "$AC_STATE" = "1" ]; then
 
     # NVIDIA ON
     [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
+    prime-select nvidia >/dev/null 2>&1
 else
     # ================= BATTERY MODE =================
-    log "BATTERY → power-saver"
+    log "BATTERY - power-saver"
 
     powerprofilesctl set power-saver
     disable_boost
@@ -79,4 +80,5 @@ else
 
     # NVIDIA OFF
     [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
+    prime-select on-demand >/dev/null 2>&1
 fi
