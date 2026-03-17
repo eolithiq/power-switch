@@ -1,2 +1,2 @@
-SUBSYSTEM=="power_supply", ATTR{online}=="1", RUN+="/bin/systemctl start power-switch.service"
-SUBSYSTEM=="power_supply", ATTR{online}=="0", RUN+="/bin/systemctl start power-switch.service"
+# Trigger power-switch.service on AC plug/unplug events
+SUBSYSTEM=="power_supply", ENV{POWER_SUPPLY_ONLINE}=="?*", RUN+="/bin/systemctl start power-switch.service"

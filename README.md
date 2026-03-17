@@ -1,4 +1,4 @@
-# Power switch
+# Power Switch
 
 Universal AC/BATTERY power management for Linux laptops.
 
@@ -10,12 +10,16 @@ Universal AC/BATTERY power management for Linux laptops.
 - Keyboard backlight:
   - Battery: always OFF
   - AC: ON only while typing
-  - Auto OFF after inactivity (120s)
-  - Restores last brightness
-- AC/BAT aware CPU/GPU scaling
+  - Auto-OFF after 120s inactivity
+  - Restores last user-set brightness level
+- Correct CPU max frequency from `/sys/cpufreq` (not `/proc/cpuinfo`)
 - No GUI, no cron, no deb
 - systemd + udev only
 - Fully configurable via scripts
+
+## Requirements
+
+Ubuntu 24.04+. The installer handles dependencies automatically (`evtest`, `cpupower`).
 
 ## Installation
 
@@ -26,7 +30,14 @@ sudo ./install.sh
 ## Uninstall
 
 ```bash
-sudo ./install.sh
+sudo ./uninstall.sh
+```
+
+## Logs
+
+```bash
+tail -f /var/log/power-switch.log
+tail -f /var/log/kbd-backlight-daemon.log
 ```
 
 ## Donate

@@ -12,25 +12,50 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" >> "$LOG"
 }
 
+die() {
+    log "ERROR: $1"
+    exit 1
+}
+
+# ---------- Root check ----------
+[ "$(id -u)" -eq 0 ] || die "Must run as root"
+
 # ---------- Detect AC / BATTERY ----------
+# Prefer dedicated AC adapter over USB-C PD sources
 AC=""
-for x in /sys/class/power_supply/*/online; do
+for x in /sys/class/power_supply/AC*/online \
+          /sys/class/power_supply/ADP*/online \
+          /sys/class/power_supply/*/online; do
     [ -e "$x" ] && AC="$x" && break
 done
-[ -z "$AC" ] && exit 0
+[ -z "$AC" ] && { log "No power supply found"; exit 0; }
 
 AC_STATE=$(cat "$AC")
+log "Power event: $([ "$AC_STATE" = "1" ] && echo "AC plugged" || echo "Battery") [${AC}]"
 
 # ---------- CPU info ----------
 CPU_VENDOR=$(grep -m1 vendor_id /proc/cpuinfo | awk '{print $3}')
+CPU_COUNT=$(nproc)
 
 # ---------- NVIDIA ----------
-NVIDIA=$(lspci -Dn | awk '/NVIDIA/{print $1}' | head -n1)
+# lspci -D outputs full address like 0000:01:00.0 — use it directly (no extra "0000:")
+NVIDIA=$(lspci -Dn 2>/dev/null | awk '/NVIDIA/{print $1}' | head -n1)
 
-# Max brightness (for future use)
-BRIGHTNESS_MAX=$(cat /sys/class/backlight/*/max_brightness)
+# ---------- Backlight ----------
+BACKLIGHT_PATH=$(ls -d /sys/class/backlight/*/ 2>/dev/null | head -n1)
+if [ -n "$BACKLIGHT_PATH" ]; then
+    BRIGHTNESS_MAX=$(cat "${BACKLIGHT_PATH}max_brightness")
+else
+    BRIGHTNESS_MAX=0
+fi
 
-# ---------- Functions ----------
+set_brightness() {
+    local val="$1"
+    [ -n "$BACKLIGHT_PATH" ] && [ "$BRIGHTNESS_MAX" -gt 0 ] && \
+        echo "$val" > "${BACKLIGHT_PATH}brightness" 2>/dev/null || true
+}
+
+# ---------- CPU boost ----------
 disable_boost() {
     if [ "$CPU_VENDOR" = "AuthenticAMD" ] && [ -e /sys/devices/system/cpu/cpufreq/boost ]; then
         echo 0 > /sys/devices/system/cpu/cpufreq/boost
@@ -47,45 +72,68 @@ enable_boost() {
     fi
 }
 
+# ---------- CPU frequency ----------
 set_cpu_freq_battery() {
-    # Calculate 60% of max frequency
-    CPU_MAX=$(awk -F: '/cpu MHz/ {print int($2)}' /proc/cpuinfo | sort -nr | head -1)
-    CPU_MAX_KHZ=$((CPU_MAX * 1000))
-    LIMIT=$((CPU_MAX_KHZ * 80 / 100))
-    cpupower frequency-set -g powersave
-    cpupower frequency-set -u "$LIMIT"
+    # Use hardware max from cpufreq — /proc/cpuinfo reports *current* MHz, not max
+    local max_khz
+    max_khz=$(cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq 2>/dev/null || echo 0)
+
+    if command -v cpupower >/dev/null 2>&1; then
+        cpupower frequency-set -g powersave 2>/dev/null || true
+        if [ "$max_khz" -gt 0 ]; then
+            local limit=$(( max_khz * 60 / 100 ))
+            cpupower frequency-set -u "${limit}KHz" 2>/dev/null || true
+        fi
+    fi
 }
 
 set_cpu_freq_ac() {
-    cpupower frequency-set -g performance
-    # Do not limit max freq
+    if command -v cpupower >/dev/null 2>&1; then
+        cpupower frequency-set -g performance 2>/dev/null || true
+        # Lift any upper limit — restore hardware max
+        local max_khz
+        max_khz=$(cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq 2>/dev/null || echo 0)
+        [ "$max_khz" -gt 0 ] && \
+            cpupower frequency-set -u "${max_khz}KHz" 2>/dev/null || true
+    fi
+}
+
+# ---------- NVIDIA power ----------
+set_nvidia() {
+    local mode="$1"  # "on" or "auto"
+    [ -z "$NVIDIA" ] && return
+    local pci_path="/sys/bus/pci/devices/${NVIDIA}/power/control"
+    if [ -e "$pci_path" ]; then
+        echo "$mode" > "$pci_path" 2>/dev/null || true
+        log "NVIDIA ${NVIDIA}: power/control -> ${mode}"
+    fi
 }
 
 # ---------- Main ----------
 if [ "$AC_STATE" = "1" ]; then
     # ================= AC MODE =================
-    log "AC - performance"
+    log "Applying: performance"
 
-    powerprofilesctl set performance
+    command -v powerprofilesctl >/dev/null 2>&1 && \
+        powerprofilesctl set performance 2>/dev/null || true
+
     set_cpu_freq_ac
     enable_boost
-    
-    echo $BRIGHTNESS_MAX > /sys/class/backlight/*/brightness 2>/dev/null
+    set_brightness "$BRIGHTNESS_MAX"
+    set_nvidia "on"
 
-    # NVIDIA ON
-    [ -n "$NVIDIA" ] && echo on > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null
-    prime-select nvidia 2>/dev/null || true  
+    log "Done: AC/performance (CPU=$CPU_VENDOR x$CPU_COUNT, NVIDIA=${NVIDIA:-none})"
 else
     # ================= BATTERY MODE =================
-    log "BATTERY - power-saver"
+    log "Applying: power-saver"
 
-    powerprofilesctl set power-saver
+    command -v powerprofilesctl >/dev/null 2>&1 && \
+        powerprofilesctl set power-saver 2>/dev/null || true
+
     disable_boost
     set_cpu_freq_battery
-    
-    echo $((BRIGHTNESS_MAX * 80 / 100)) > /sys/class/backlight/*/brightness 2>/dev/null
+    set_brightness $(( BRIGHTNESS_MAX * 60 / 100 ))
+    set_nvidia "auto"
 
-    # NVIDIA OFF
-    [ -n "$NVIDIA" ] && echo auto > /sys/bus/pci/devices/0000:$NVIDIA/power/control 2>/dev/null 
-    prime-select on-demand 2>/dev/null || true     
+    log "Done: battery/power-saver (CPU=$CPU_VENDOR x$CPU_COUNT, NVIDIA=${NVIDIA:-none})"
 fi
